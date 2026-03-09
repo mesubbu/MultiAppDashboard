@@ -1,0 +1,198 @@
+services:
+  postgres:
+    extends:
+      file: docker-compose.yml
+      service: postgres
+    environment:
+      POSTGRES_DB: ai_platform_control
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    volumes:
+      - /srv/knowledge-layer/postgres:/var/lib/postgresql/data
+      - /srv/logs/postgres:/var/log/postgresql
+    secrets:
+      - postgres_password
+    expose:
+      - '5432'
+    ports: []
+
+  redis:
+    extends:
+      file: docker-compose.yml
+      service: redis
+    volumes:
+      - /srv/knowledge-layer/redis:/data
+      - /srv/logs/redis:/var/log/redis
+    expose:
+      - '6379'
+    ports: []
+
+  dashboard:
+    extends:
+      file: docker-compose.yml
+      service: dashboard
+    env_file:
+      - path: /srv/apps/dashboard/.env.production
+        required: false
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    command:
+      - sh
+      - -c
+      - >-
+        export SESSION_SECRET="$$(cat /run/secrets/dashboard_session_secret)" &&
+        export CONTROL_PLANE_API_TOKEN="$$(cat /run/secrets/control_plane_api_token)" &&
+        export DATABASE_URL="$$(cat /run/secrets/platform_database_url)" &&
+        pnpm start
+    volumes:
+      - /srv/apps/dashboard/state:/app/.data
+      - /srv/logs/dashboard:/var/log/ai-platform/dashboard
+    secrets:
+      - dashboard_session_secret
+      - control_plane_api_token
+      - platform_database_url
+    expose:
+      - '3000'
+    ports: []
+
+  control-plane-api:
+    extends:
+      file: docker-compose.yml
+      service: control-plane-api
+    env_file:
+      - path: /srv/apps/control-plane-api/.env.production
+        required: false
+    command:
+      - sh
+      - -c
+      - >-
+        export CONTROL_PLANE_API_TOKEN="$$(cat /run/secrets/control_plane_api_token)" &&
+        export DATABASE_URL="$$(cat /run/secrets/platform_database_url)" &&
+        node control-plane-api/server.mjs
+    volumes:
+      - /srv/apps/control-plane-api/state:/app/.data
+      - /srv/knowledge-layer/object-storage:/var/lib/ai-platform/object-storage
+      - /srv/logs/control-plane-api:/var/log/ai-platform/control-plane-api
+    secrets:
+      - control_plane_api_token
+      - platform_database_url
+    expose:
+      - '4100'
+    ports: []
+
+  nginx:
+    extends:
+      file: docker-compose.yml
+      service: nginx
+    volumes:
+      - /srv/apps/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /srv/apps/nginx/conf.d:/etc/nginx/conf.d:ro
+      - /srv/apps/nginx/certs:/etc/nginx/certs:ro
+      - /srv/logs/nginx:/var/log/nginx
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    depends_on:
+      nginx:
+        condition: service_healthy
+      control-plane-api:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - >-
+        cloudflared tunnel --no-autoupdate run --token "$$(cat /run/secrets/cloudflare_tunnel_token)"
+    volumes:
+      - /srv/apps/cloudflared:/etc/cloudflared:ro
+      - /srv/logs/cloudflared:/var/log/cloudflared
+    secrets:
+      - cloudflare_tunnel_token
+    networks: [edge, private]
+    expose:
+      - '2000'
+    ports: []
+
+  planner-slm:
+    image: ghcr.io/example/planner-slm:latest
+    restart: unless-stopped
+    expose: ['7201']
+    networks: [private]
+
+  sql-brain:
+    image: ghcr.io/example/sql-brain:latest
+    restart: unless-stopped
+    expose: ['7202']
+    networks: [private]
+
+  agent-brain:
+    image: ghcr.io/example/agent-brain:latest
+    restart: unless-stopped
+    expose: ['7203']
+    networks: [private]
+
+  embedding-engine:
+    image: ghcr.io/example/embedding-engine:latest
+    restart: unless-stopped
+    expose: ['7204']
+    networks: [private]
+
+  memory-compactor:
+    image: ghcr.io/example/memory-compactor:latest
+    restart: unless-stopped
+    expose: ['7205']
+    networks: [private]
+
+  graph-sync:
+    image: ghcr.io/example/graph-sync:latest
+    restart: unless-stopped
+    expose: ['7206']
+    networks: [private]
+
+  audit-forwarder:
+    image: ghcr.io/example/audit-forwarder:latest
+    restart: unless-stopped
+    expose: ['7207']
+    networks: [private]
+
+  workflow-runner:
+    image: ghcr.io/example/workflow-runner:latest
+    restart: unless-stopped
+    expose: ['7208']
+    networks: [private]
+
+  moderation-runtime:
+    image: ghcr.io/example/moderation-runtime:latest
+    restart: unless-stopped
+    expose: ['7209']
+    networks: [private]
+
+  notification-broker:
+    image: ghcr.io/example/notification-broker:latest
+    restart: unless-stopped
+    expose: ['7210']
+    networks: [private]
+
+  metrics-collector:
+    image: ghcr.io/example/metrics-collector:latest
+    restart: unless-stopped
+    expose: ['7211']
+    networks: [private]
+
+secrets:
+  postgres_password:
+    file: /srv/secrets/postgres_password
+  dashboard_session_secret:
+    file: /srv/secrets/dashboard_session_secret
+  control_plane_api_token:
+    file: /srv/secrets/control_plane_api_token
+  platform_database_url:
+    file: /srv/secrets/platform_database_url
+  cloudflare_tunnel_token:
+    file: /srv/secrets/cloudflare_tunnel_token
+
+networks:
+  edge:
+  private:
+    internal: true

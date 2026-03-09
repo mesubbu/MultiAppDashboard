@@ -3,3 +3,8 @@ node_modules
 coverage
 dist
 .DS_Store
+.data
+.open-next
+.wrangler
+.dev.vars
+.env

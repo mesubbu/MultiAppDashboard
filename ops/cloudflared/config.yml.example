@@ -1,0 +1,9 @@
+tunnel: your-tunnel-id
+metrics: 0.0.0.0:2000
+
+ingress:
+  - hostname: dashboard.example.com
+    service: http://nginx:80
+  - hostname: control-plane.example.com
+    service: http://control-plane-api:4100
+  - service: http_status:404

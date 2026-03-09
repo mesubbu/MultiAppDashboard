@@ -122,6 +122,16 @@ export const dashboardModules: DashboardModuleDefinition[] = [
     keyInteractions: ['Inspect health posture', 'Track queue backlog', 'Jump to Grafana or Loki'],
   },
   {
+    slug: 'audit',
+    title: 'Audit Log',
+    description: 'Compliance-ready trail of administrative changes, model switches, agent actions, and client errors.',
+    pageLayout: 'Filterable audit log table with export actions and scope-aware history.',
+    components: ['MetricsCards'],
+    apiEndpoints: ['/admin/audit'],
+    databaseEntities: ['audit_logs', 'model_switch_audit', 'tool_audit_logs'],
+    keyInteractions: ['Filter by actor', 'Filter by resource', 'Export CSV/JSON'],
+  },
+  {
     slug: 'settings',
     title: 'System Settings',
     description: 'Global control-plane, auth, tenant governance, and observability settings.',

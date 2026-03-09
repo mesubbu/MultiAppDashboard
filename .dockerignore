@@ -1,0 +1,9 @@
+node_modules
+.next
+.open-next
+.git
+.wrangler
+coverage
+dist
+.DS_Store
+.data

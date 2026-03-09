@@ -1,0 +1,73 @@
+$schema = "./node_modules/wrangler/config-schema.json"
+name = "ai-platform-control-dashboard"
+main = ".open-next/worker.js"
+compatibility_date = "2026-03-08"
+compatibility_flags = ["nodejs_compat"]
+keep_vars = false
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[observability]
+enabled = true
+
+[vars]
+NEXT_PUBLIC_APP_NAME = "AI Platform Control Dashboard"
+SESSION_TTL_SECONDS = "43200"
+SESSION_ROTATION_WINDOW_SECONDS = "1800"
+
+[env.staging]
+name = "ai-platform-control-dashboard-staging"
+
+[env.staging.vars]
+NEXT_PUBLIC_APP_NAME = "AI Platform Control Dashboard (Staging)"
+CONTROL_PLANE_API_BASE_URL = "https://control-plane-staging.example.com"
+NEXT_PUBLIC_CONTROL_PLANE_API_BASE_URL = "https://control-plane-staging.example.com"
+DATABASE_SSL = "true"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "ai-platform-control-staging"
+database_id = "REPLACE_WITH_STAGING_D1_DATABASE_ID"
+preview_database_id = "REPLACE_WITH_STAGING_D1_PREVIEW_DATABASE_ID"
+
+[[env.staging.kv_namespaces]]
+binding = "SESSION_KV"
+id = "REPLACE_WITH_STAGING_KV_NAMESPACE_ID"
+preview_id = "REPLACE_WITH_STAGING_KV_PREVIEW_NAMESPACE_ID"
+
+[[env.staging.r2_buckets]]
+binding = "AUDIT_ARCHIVE"
+bucket_name = "ai-platform-control-staging"
+preview_bucket_name = "ai-platform-control-staging-preview"
+
+[[env.staging.queues.producers]]
+binding = "PLATFORM_EVENTS"
+queue = "ai-platform-events-staging"
+
+[env.production]
+name = "ai-platform-control-dashboard-production"
+
+[env.production.vars]
+NEXT_PUBLIC_APP_NAME = "AI Platform Control Dashboard"
+CONTROL_PLANE_API_BASE_URL = "https://control-plane.example.com"
+NEXT_PUBLIC_CONTROL_PLANE_API_BASE_URL = "https://control-plane.example.com"
+DATABASE_SSL = "true"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "ai-platform-control-production"
+database_id = "REPLACE_WITH_PRODUCTION_D1_DATABASE_ID"
+
+[[env.production.kv_namespaces]]
+binding = "SESSION_KV"
+id = "REPLACE_WITH_PRODUCTION_KV_NAMESPACE_ID"
+
+[[env.production.r2_buckets]]
+binding = "AUDIT_ARCHIVE"
+bucket_name = "ai-platform-control-production"
+
+[[env.production.queues.producers]]
+binding = "PLATFORM_EVENTS"
+queue = "ai-platform-events-production"

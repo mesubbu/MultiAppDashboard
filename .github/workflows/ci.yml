@@ -1,0 +1,115 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      SESSION_SECRET: ci-session-secret-12345678901234567890
+      CONTROL_PLANE_API_TOKEN: ci-control-plane-token
+      ADMIN_MFA_TEST_CODE: '000000'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  deploy-cloudflare-staging:
+    needs: verify
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && secrets.CLOUDFLARE_ACCOUNT_ID != '' && secrets.CLOUDFLARE_API_TOKEN != '' && secrets.SESSION_SECRET != '' && secrets.CONTROL_PLANE_API_TOKEN != '' && secrets.DATABASE_URL != ''
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+      CONTROL_PLANE_API_TOKEN: ${{ secrets.CONTROL_PLANE_API_TOKEN }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ADMIN_MFA_TEST_CODE: ${{ vars.ADMIN_MFA_TEST_CODE || '000000' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+      - name: Deploy dashboard to Cloudflare staging
+        run: pnpm deploy:staging
+
+  deploy-cloudflare-production:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.CLOUDFLARE_ACCOUNT_ID != '' && secrets.CLOUDFLARE_API_TOKEN != '' && secrets.SESSION_SECRET != '' && secrets.CONTROL_PLANE_API_TOKEN != '' && secrets.DATABASE_URL != ''
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+      CONTROL_PLANE_API_TOKEN: ${{ secrets.CONTROL_PLANE_API_TOKEN }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ADMIN_MFA_TEST_CODE: ${{ vars.ADMIN_MFA_TEST_CODE || '000000' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+      - name: Deploy dashboard to Cloudflare production
+        run: pnpm deploy:production
+
+  deploy-vps-control-plane:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.VPS_HOST != '' && secrets.VPS_USER != '' && secrets.VPS_SSH_PRIVATE_KEY != '' && secrets.VPS_SSH_KNOWN_HOSTS != ''
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '22' }}
+      VPS_DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH || '/srv/apps/control-plane-api' }}
+      VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+      VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$VPS_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Deploy control-plane-api on VPS
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
+            "cd '$VPS_DEPLOY_PATH' && git pull --ff-only && docker compose -f docker-compose.vps.yml up -d --build control-plane-api nginx redis postgres"
