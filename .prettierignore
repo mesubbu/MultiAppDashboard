@@ -1,0 +1,17 @@
+# Build artifacts
+.next/
+out/
+dist/
+build/
+
+# Generated & cache files
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+.pnpm-store/
+node_modules/
+
+# Logs
+*.log
+
+# Env files
+.env*

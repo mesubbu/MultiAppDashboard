@@ -23,9 +23,12 @@ export default function AccessDeniedPage() {
           <Lock className="h-7 w-7" />
         </div>
 
-        <h1 className="mt-6 text-2xl font-semibold text-white">Access denied</h1>
+        <h1 className="mt-6 text-2xl font-semibold text-white">
+          Access denied
+        </h1>
         <p className="mt-3 text-sm leading-6 text-slate-400">
-          You don't have permission to access this resource. The required permission is:
+          You don&apos;t have permission to access this resource. The required
+          permission is:
         </p>
 
         <div className="mx-auto mt-4 inline-flex items-center gap-2 rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-200">
@@ -36,14 +39,22 @@ export default function AccessDeniedPage() {
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5 text-left">
           <h3 className="text-sm font-semibold text-white">What can I do?</h3>
           <ul className="mt-3 space-y-2 text-sm text-slate-400">
-            <li>• Contact your platform administrator to request the needed permission.</li>
-            <li>• Switch to a different tenant/app scope that grants higher access.</li>
-            <li>• Navigate to a screen you're authorized to view.</li>
+            <li>
+              • Contact your platform administrator to request the needed
+              permission.
+            </li>
+            <li>
+              • Switch to a different tenant/app scope that grants higher
+              access.
+            </li>
+            <li>• Navigate to a screen you&apos;re authorized to view.</li>
           </ul>
         </div>
 
         <div className="mt-6 space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Suggested destinations</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            Suggested destinations
+          </p>
           <div className="flex flex-wrap justify-center gap-2">
             {suggestedDestinations.map((dest) => (
               <Link

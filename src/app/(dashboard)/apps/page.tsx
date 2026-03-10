@@ -21,13 +21,43 @@ export default async function AppsPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Apps" description="Track every tenant application by runtime, environment, region, and agent attachment." />
+      <PageHeader
+        title="Apps"
+        description="Observe each operator-managed app or service on the private VPS by runtime, environment, health, and recent activity."
+      />
       <MetricsCards
         items={[
-          { label: 'Production apps', value: `${apps.items.filter((app) => app.environment === 'production').length}`, delta: '+1', trend: 'up', description: 'Apps currently serving production traffic.' },
-          { label: 'Degraded apps', value: `${apps.items.filter((app) => app.status !== 'healthy').length}`, delta: '-1', trend: 'down', description: 'Apps with rollout or service issues.' },
-          { label: 'Attached agents', value: `${apps.items.reduce((sum, app) => sum + app.agentsAttached, 0)}`, delta: '+3', trend: 'up', description: 'Total agent workflows mapped to applications.' },
-          { label: 'Runtime families', value: `${new Set(apps.items.map((app) => app.runtime)).size}`, delta: 'flat', trend: 'flat', description: 'PWA, Flutter, API, and admin runtime mix.' },
+          {
+            label: 'Production services',
+            value: `${apps.items.filter((app) => app.environment === 'production').length}`,
+            delta: '+1',
+            trend: 'up',
+            description:
+              'Apps currently serving production traffic on the private VPS.',
+          },
+          {
+            label: 'Services needing attention',
+            value: `${apps.items.filter((app) => app.status !== 'healthy').length}`,
+            delta: '-1',
+            trend: 'down',
+            description:
+              'Apps with rollout or runtime issues that warrant inspection.',
+          },
+          {
+            label: 'Attached automations',
+            value: `${apps.items.reduce((sum, app) => sum + app.agentsAttached, 0)}`,
+            delta: '+3',
+            trend: 'up',
+            description:
+              'Total automation workflows mapped to operator-managed apps.',
+          },
+          {
+            label: 'Runtime families',
+            value: `${new Set(apps.items.map((app) => app.runtime)).size}`,
+            delta: 'flat',
+            trend: 'flat',
+            description: 'PWA, Flutter, API, and admin runtime mix.',
+          },
         ]}
       />
       <AppManager

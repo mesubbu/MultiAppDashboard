@@ -1,0 +1,31 @@
+nohup: ignoring input
+
+> ai-platform-control-dashboard@1.0.0 dev /home/subbu/Downloads/Projects/0MultiAppHosting
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.122.1:3000
+- Environments: .env
+
+✓ Starting...
+✓ Ready in 3.3s
+○ Compiling / ...
+ HEAD / 200 in 11.4s (compile: 10.5s, render: 833ms)
+ GET / 200 in 509ms (compile: 19ms, render: 491ms)
+ GET /login 200 in 3.2s (compile: 2.1s, render: 1114ms)
+○ Compiling /api/auth/login ...
+[auth] login audit {
+  id: 'audit_login_c590feaa-3298-49cb-9f71-d7b62d5ee209',
+  email: 'owner@platform.local',
+  userId: 'usr_platform_owner',
+  timestamp: '2026-03-10T09:59:00.245Z',
+  ipAddress: '::1',
+  userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
+  outcome: 'success'
+}
+ POST /api/auth/login 200 in 5.5s (compile: 5.3s, render: 214ms)
+ GET / 200 in 1752ms (compile: 18ms, render: 1734ms)
+ GET / 200 in 1246ms (compile: 29ms, render: 1217ms)
+ GET /alerts 200 in 2.3s (compile: 1994ms, render: 290ms)
+ GET /api/admin/events/stream 200 in 24.1min (compile: 1357ms, render: 24.0min)

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import type { Route } from 'next';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -24,7 +25,11 @@ export function AppManager({
   tenants: TenantRecord[];
   canManage: boolean;
   pageInfo: PaginationInfo;
-  query: { query: string; status?: AppRecord['status']; environment?: AppRecord['environment'] };
+  query: {
+    query: string;
+    status?: AppRecord['status'];
+    environment?: AppRecord['environment'];
+  };
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -33,7 +38,9 @@ export function AppManager({
   const [isPending, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState(query.query);
   const [statusFilter, setStatusFilter] = useState(query.status ?? 'all');
-  const [environmentFilter, setEnvironmentFilter] = useState(query.environment ?? 'all');
+  const [environmentFilter, setEnvironmentFilter] = useState(
+    query.environment ?? 'all',
+  );
   const [drafts, setDrafts] = useState<Record<string, AppDraft>>(() =>
     Object.fromEntries(
       apps.map((app) => [
@@ -55,7 +62,10 @@ export function AppManager({
     region: 'us-east-1',
   });
 
-  function replaceListParams(updates: Record<string, string | undefined>, resetPage = false) {
+  function replaceListParams(
+    updates: Record<string, string | undefined>,
+    resetPage = false,
+  ) {
     const next = new URLSearchParams(searchParams.toString());
     if (resetPage) {
       next.delete('page');
@@ -70,7 +80,9 @@ export function AppManager({
     }
 
     const queryString = next.toString();
-    router.replace((queryString ? `${pathname}?${queryString}` : pathname) as Route);
+    router.replace(
+      (queryString ? `${pathname}?${queryString}` : pathname) as Route,
+    );
   }
 
   async function createApp() {
@@ -81,7 +93,9 @@ export function AppManager({
     });
 
     if (!response.ok) {
-      throw new Error(await getApiErrorMessage(response, 'Unable to create app.'));
+      throw new Error(
+        await getApiErrorMessage(response, 'Unable to create app.'),
+      );
     }
   }
 
@@ -93,37 +107,44 @@ export function AppManager({
     });
 
     if (!response.ok) {
-      throw new Error(await getApiErrorMessage(response, 'Unable to update app.'));
+      throw new Error(
+        await getApiErrorMessage(response, 'Unable to update app.'),
+      );
     }
   }
 
   return (
     <SectionCard
       title="Application registry"
-      description="All applications deployed on top of the shared multi-tenant platform."
+      description="Operator-managed apps and services running inside the private VPS control plane."
     >
       {canManage ? (
         <div className="mb-6 grid gap-3 rounded-2xl border border-white/10 bg-slate-950/40 p-4 md:grid-cols-5">
-          <select
-            value={form.tenantId}
-            onChange={(event) => setForm((current) => ({ ...current, tenantId: event.target.value }))}
-            className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
-          >
-            {tenants.map((tenant) => (
-              <option key={tenant.id} value={tenant.id}>
-                {tenant.name}
-              </option>
-            ))}
-          </select>
+          <div className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+              Scope
+            </p>
+            <p className="mt-2 text-sm font-medium text-white">Private VPS</p>
+            <p className="mt-1 text-xs text-slate-400">
+              New services are created inside the current operator workspace.
+            </p>
+          </div>
           <input
             value={form.name}
-            onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, name: event.target.value }))
+            }
             placeholder="App name"
             className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
           />
           <select
             value={form.runtime}
-            onChange={(event) => setForm((current) => ({ ...current, runtime: event.target.value }))}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                runtime: event.target.value,
+              }))
+            }
             className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
           >
             <option value="pwa">PWA</option>
@@ -133,7 +154,12 @@ export function AppManager({
           </select>
           <select
             value={form.environment}
-            onChange={(event) => setForm((current) => ({ ...current, environment: event.target.value }))}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                environment: event.target.value,
+              }))
+            }
             className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
           >
             <option value="production">Production</option>
@@ -149,12 +175,17 @@ export function AppManager({
                     await createApp();
                     const createdName = form.name;
                     setForm((current) => ({ ...current, name: '' }));
-                    pushSuccessToast('Application created', `${createdName} was added successfully.`);
+                    pushSuccessToast(
+                      'Application created',
+                      `${createdName} was added successfully.`,
+                    );
                     router.refresh();
                   } catch (error) {
                     pushErrorToast(
                       'Unable to create app',
-                      error instanceof Error ? error.message : 'Unable to create app.',
+                      error instanceof Error
+                        ? error.message
+                        : 'Unable to create app.',
                     );
                   }
                 })();
@@ -170,22 +201,37 @@ export function AppManager({
       <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-white/10 bg-slate-950/30 p-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_220px] xl:min-w-[44rem]">
           <div>
-            <label htmlFor="app-search" className="block text-xs uppercase tracking-[0.2em] text-slate-500">
+            <label
+              htmlFor="app-search"
+              className="block text-xs uppercase tracking-[0.2em] text-slate-500"
+            >
               Search apps
             </label>
             <input
               id="app-search"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Name, id, runtime, tenant, or region"
+              placeholder="Name, id, runtime, or region"
               className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
             />
           </div>
           <div>
-            <label htmlFor="app-status-filter" className="block text-xs uppercase tracking-[0.2em] text-slate-500">
+            <label
+              htmlFor="app-status-filter"
+              className="block text-xs uppercase tracking-[0.2em] text-slate-500"
+            >
               Status
             </label>
-            <select id="app-status-filter" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as AppRecord['status'] | 'all')} className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100">
+            <select
+              id="app-status-filter"
+              value={statusFilter}
+              onChange={(event) =>
+                setStatusFilter(
+                  event.target.value as AppRecord['status'] | 'all',
+                )
+              }
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+            >
               <option value="all">All statuses</option>
               <option value="healthy">Healthy</option>
               <option value="degraded">Degraded</option>
@@ -193,10 +239,22 @@ export function AppManager({
             </select>
           </div>
           <div>
-            <label htmlFor="app-environment-filter" className="block text-xs uppercase tracking-[0.2em] text-slate-500">
+            <label
+              htmlFor="app-environment-filter"
+              className="block text-xs uppercase tracking-[0.2em] text-slate-500"
+            >
               Environment
             </label>
-            <select id="app-environment-filter" value={environmentFilter} onChange={(event) => setEnvironmentFilter(event.target.value as AppRecord['environment'] | 'all')} className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100">
+            <select
+              id="app-environment-filter"
+              value={environmentFilter}
+              onChange={(event) =>
+                setEnvironmentFilter(
+                  event.target.value as AppRecord['environment'] | 'all',
+                )
+              }
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+            >
               <option value="all">All environments</option>
               <option value="production">Production</option>
               <option value="staging">Staging</option>
@@ -205,10 +263,41 @@ export function AppManager({
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => replaceListParams({ q: searchQuery.trim() || undefined, status: statusFilter === 'all' ? undefined : statusFilter, environment: environmentFilter === 'all' ? undefined : environmentFilter }, true)} className="rounded-xl border border-cyan-400/40 px-4 py-2 text-sm font-semibold text-cyan-200">
+          <button
+            type="button"
+            onClick={() =>
+              replaceListParams(
+                {
+                  q: searchQuery.trim() || undefined,
+                  status: statusFilter === 'all' ? undefined : statusFilter,
+                  environment:
+                    environmentFilter === 'all' ? undefined : environmentFilter,
+                },
+                true,
+              )
+            }
+            className="rounded-xl border border-cyan-400/40 px-4 py-2 text-sm font-semibold text-cyan-200"
+          >
             Apply filters
           </button>
-          <button type="button" onClick={() => { setSearchQuery(''); setStatusFilter('all'); setEnvironmentFilter('all'); replaceListParams({ q: undefined, status: undefined, environment: undefined, page: undefined }, true); }} className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300">
+          <button
+            type="button"
+            onClick={() => {
+              setSearchQuery('');
+              setStatusFilter('all');
+              setEnvironmentFilter('all');
+              replaceListParams(
+                {
+                  q: undefined,
+                  status: undefined,
+                  environment: undefined,
+                  page: undefined,
+                },
+                true,
+              );
+            }}
+            className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300"
+          >
             Clear
           </button>
         </div>
@@ -223,7 +312,8 @@ export function AppManager({
         serverPagination={{
           ...pageInfo,
           onPageChange: (page) => replaceListParams({ page: `${page}` }),
-          onPageSizeChange: (pageSize) => replaceListParams({ page: '1', page_size: `${pageSize}` }),
+          onPageSizeChange: (pageSize) =>
+            replaceListParams({ page: '1', page_size: `${pageSize}` }),
         }}
         columns={[
           {
@@ -232,16 +322,15 @@ export function AppManager({
             sortValue: (app) => drafts[app.id]?.name ?? app.name,
             render: (app) => (
               <div>
-                <p className="font-medium text-white">{app.name}</p>
+                <Link
+                  href={`/apps/${app.id}` as Route}
+                  className="font-medium text-white transition hover:text-cyan-300"
+                >
+                  {app.name}
+                </Link>
                 <p className="text-xs text-slate-500">{app.id}</p>
               </div>
             ),
-          },
-          {
-            key: 'tenant',
-            header: 'Tenant',
-            sortValue: (app) => tenants.find((tenant) => tenant.id === app.tenantId)?.name ?? app.tenantId,
-            render: (app) => tenants.find((tenant) => tenant.id === app.tenantId)?.name ?? app.tenantId,
           },
           {
             key: 'runtime',
@@ -262,7 +351,8 @@ export function AppManager({
                       ...current,
                       [app.id]: {
                         ...current[app.id],
-                        environment: event.target.value as AppRecord['environment'],
+                        environment: event.target
+                          .value as AppRecord['environment'],
                       },
                     }))
                   }
@@ -314,7 +404,10 @@ export function AppManager({
                   onChange={(event) =>
                     setDrafts((current) => ({
                       ...current,
-                      [app.id]: { ...current[app.id], region: event.target.value },
+                      [app.id]: {
+                        ...current[app.id],
+                        region: event.target.value,
+                      },
                     }))
                   }
                   className="w-28 rounded-lg border border-white/10 bg-slate-900 px-2 py-1 text-sm text-slate-100"
@@ -332,34 +425,45 @@ export function AppManager({
           {
             key: 'actions',
             header: '',
-            render: (app) =>
-              canManage ? (
-                <button
-                  disabled={isPending}
-                  onClick={() =>
-                    startTransition(() => {
-                      void (async () => {
-                        try {
-                          await saveApp(app.id);
-                          pushSuccessToast(
-                            'Application updated',
-                            `${drafts[app.id]?.name ?? app.name} was saved successfully.`,
-                          );
-                          router.refresh();
-                        } catch (error) {
-                          pushErrorToast(
-                            'Unable to update app',
-                            error instanceof Error ? error.message : 'Unable to update app.',
-                          );
-                        }
-                      })();
-                    })
-                  }
-                  className="rounded-lg border border-cyan-400/40 px-3 py-1 text-xs font-semibold text-cyan-200 disabled:opacity-50"
+            render: (app) => (
+              <div className="flex flex-wrap justify-end gap-2">
+                <Link
+                  href={`/apps/${app.id}` as Route}
+                  className="rounded-lg border border-white/10 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:bg-white/5"
                 >
-                  Save
-                </button>
-              ) : null,
+                  Observe
+                </Link>
+                {canManage ? (
+                  <button
+                    disabled={isPending}
+                    onClick={() =>
+                      startTransition(() => {
+                        void (async () => {
+                          try {
+                            await saveApp(app.id);
+                            pushSuccessToast(
+                              'Application updated',
+                              `${drafts[app.id]?.name ?? app.name} was saved successfully.`,
+                            );
+                            router.refresh();
+                          } catch (error) {
+                            pushErrorToast(
+                              'Unable to update app',
+                              error instanceof Error
+                                ? error.message
+                                : 'Unable to update app.',
+                            );
+                          }
+                        })();
+                      })
+                    }
+                    className="rounded-lg border border-cyan-400/40 px-3 py-1 text-xs font-semibold text-cyan-200 disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                ) : null}
+              </div>
+            ),
           },
         ]}
       />
