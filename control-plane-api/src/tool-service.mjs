@@ -208,6 +208,119 @@ const toolDefinitions = [
       };
     },
   },
+  {
+    name: 'entity.create.record',
+    description: 'Create a new tenant, app, or user record in the control plane.',
+    schema: ['entityType:tenant|app|user', 'data:record'],
+    permissions: ['tools:read', 'tenants:write', 'apps:write', 'users:write'],
+    riskLevel: 'high',
+    executionMode: 'write',
+    safetyGuards: ['permission_checked', 'schema_validated', 'audit_logged'],
+    inputSchema: z.object({
+      entityType: z.enum(['tenant', 'app', 'user']),
+      data: z.record(z.union([z.string(), z.number(), z.boolean()])),
+    }),
+    requiredPermissions: (input) => ['tools:read', input.entityType === 'tenant' ? 'tenants:write' : input.entityType === 'app' ? 'apps:write' : 'users:write'],
+    async execute({ store, input, adminContext }) {
+      const item = await store.createEntity(input.entityType, input.data, {
+        tenantId: adminContext.tenantId,
+        appId: adminContext.appId,
+        userId: adminContext.userId,
+      });
+      return {
+        summary: `Created ${input.entityType} record with id ${item.id}.`,
+        payload: { entityType: input.entityType, item },
+      };
+    },
+  },
+  {
+    name: 'entity.update.record',
+    description: 'Update an existing tenant, app, or user record by ID.',
+    schema: ['entityType:tenant|app|user', 'entityId:string', 'data:record'],
+    permissions: ['tools:read', 'tenants:write', 'apps:write', 'users:write'],
+    riskLevel: 'high',
+    executionMode: 'write',
+    safetyGuards: ['permission_checked', 'schema_validated', 'audit_logged', 'id_required'],
+    inputSchema: z.object({
+      entityType: z.enum(['tenant', 'app', 'user']),
+      entityId: z.string().min(1),
+      data: z.record(z.union([z.string(), z.number(), z.boolean()])),
+    }),
+    requiredPermissions: (input) => ['tools:read', input.entityType === 'tenant' ? 'tenants:write' : input.entityType === 'app' ? 'apps:write' : 'users:write'],
+    async execute({ store, input, adminContext }) {
+      const item = await store.updateEntity(input.entityType, input.entityId, input.data, {
+        tenantId: adminContext.tenantId,
+        appId: adminContext.appId,
+        userId: adminContext.userId,
+      });
+      return {
+        summary: `Updated ${input.entityType} record ${input.entityId}.`,
+        payload: { entityType: input.entityType, item },
+      };
+    },
+  },
+  {
+    name: 'agent.execute.action',
+    description: 'Execute an operator action on an agent: pause, restart, update budget, or update workflow.',
+    schema: ['agentId:string', 'action:pause|restart|update_budget|update_workflow', 'budgetUsd?:number', 'workflowVersion?:string'],
+    permissions: ['tools:read', 'agents:operate'],
+    riskLevel: 'critical',
+    executionMode: 'write',
+    safetyGuards: ['permission_checked', 'privileged_role_required', 'audit_logged', 'agent_id_validated'],
+    inputSchema: z.object({
+      agentId: z.string().min(1),
+      action: z.enum(['pause', 'restart', 'update_budget', 'update_workflow']),
+      budgetUsd: z.number().min(0).max(10000).optional(),
+      workflowVersion: z.string().min(1).max(20).optional(),
+    }),
+    requiredPermissions: () => ['tools:read', 'agents:operate'],
+    async execute({ store, input, adminContext }) {
+      const result = await store.executeAgentAction(input.agentId, {
+        action: input.action,
+        budgetUsd: input.budgetUsd,
+        workflowVersion: input.workflowVersion,
+      }, {
+        tenantId: adminContext.tenantId,
+        appId: adminContext.appId,
+        userId: adminContext.userId,
+      });
+      return {
+        summary: `Executed ${input.action} on agent ${input.agentId}.`,
+        payload: { agentId: input.agentId, action: input.action, result },
+      };
+    },
+  },
+  {
+    name: 'agent.record.feedback',
+    description: 'Record an outcome or feedback for an agent execution.',
+    schema: ['agentId:string', 'status:success|warning|failed|blocked', 'score:number', 'summary:string'],
+    permissions: ['tools:read', 'agents:operate'],
+    riskLevel: 'medium',
+    executionMode: 'write',
+    safetyGuards: ['permission_checked', 'schema_validated', 'score_bounded'],
+    inputSchema: z.object({
+      agentId: z.string().min(1),
+      status: z.enum(['success', 'warning', 'failed', 'blocked']),
+      score: z.number().min(0).max(1),
+      summary: z.string().min(1).max(500),
+    }),
+    requiredPermissions: () => ['tools:read', 'agents:operate'],
+    async execute({ store, input, adminContext }) {
+      const outcome = await store.recordAgentOutcome({
+        agentId: input.agentId,
+        status: input.status,
+        score: input.score,
+        summary: input.summary,
+        tenantId: adminContext.tenantId,
+        appId: adminContext.appId,
+        userId: adminContext.userId,
+      });
+      return {
+        summary: `Recorded ${input.status} outcome (score ${input.score}) for agent ${input.agentId}.`,
+        payload: { agentId: input.agentId, outcome },
+      };
+    },
+  },
 ].map((definition) => {
   if (!toolNamePattern.test(definition.name)) {
     throw new Error(`Invalid tool name: ${definition.name}`);

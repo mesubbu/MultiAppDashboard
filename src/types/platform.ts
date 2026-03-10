@@ -30,7 +30,7 @@ export type Permission =
 
 export type HealthStatus = 'healthy' | 'degraded' | 'critical';
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
-export type ToolExecutionMode = 'read' | 'compute' | 'analyze';
+export type ToolExecutionMode = 'read' | 'compute' | 'analyze' | 'write';
 export type ToolExecutionStatus = 'completed' | 'blocked' | 'failed';
 export type AgentState = 'running' | 'paused' | 'throttled' | 'error';
 export type OrchestratorWorkflowStatus = 'queued' | 'running' | 'waiting_review' | 'completed' | 'failed';
@@ -137,7 +137,8 @@ export type AssistantToolName =
   | 'control.run.research-agent'
   | 'control.run.insight-agent'
   | 'control.run.recommendation-agent'
-  | 'control.write.feedback';
+  | 'control.write.feedback'
+  | 'assistant.navigate';
 
 export type AssistantToolStatus = 'completed' | 'blocked' | 'failed';
 

@@ -104,6 +104,15 @@ export default function LoginPage() {
           <button type="submit" disabled={isLoading} className="inline-flex w-full items-center justify-center rounded-2xl bg-cyan-500 px-4 py-3 font-medium text-slate-950 transition hover:bg-cyan-400 disabled:opacity-70">
             {isLoading ? 'Signing in…' : 'Enter dashboard'}
           </button>
+          <div className="flex items-center justify-center gap-4 text-sm">
+            <a href="/login/recovery" className="text-cyan-300 transition hover:text-cyan-200 hover:underline">
+              Forgot password?
+            </a>
+            <span className="text-slate-600">·</span>
+            <a href="/login/recovery" className="text-cyan-300 transition hover:text-cyan-200 hover:underline">
+              Need help signing in?
+            </a>
+          </div>
         </form>
       </div>
     </main>

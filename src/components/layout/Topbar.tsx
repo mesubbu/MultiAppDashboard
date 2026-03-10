@@ -1,6 +1,8 @@
 'use client';
 
-import { Bell, LogOut, Shield } from 'lucide-react';
+import type { Route } from 'next';
+import Link from 'next/link';
+import { Bell, LogOut, Menu, Shield } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import type { AppRecord, SessionUser, TenantRecord } from '@/types/platform';
@@ -9,10 +11,12 @@ export function Topbar({
   sessionUser,
   activeTenant,
   activeApp,
+  onMenuToggle,
 }: {
   sessionUser: SessionUser;
   activeTenant: TenantRecord | null;
   activeApp: AppRecord | null;
+  onMenuToggle?: () => void;
 }) {
   const router = useRouter();
 
@@ -54,14 +58,25 @@ export function Topbar({
         </p>
       </div>
       <div className="flex items-center gap-3">
-        <div
+        {onMenuToggle ? (
+          <button
+            type="button"
+            onClick={onMenuToggle}
+            className="inline-flex items-center justify-center rounded-xl border border-white/10 p-2 text-slate-300 transition hover:bg-white/5 lg:hidden"
+            aria-label="Open navigation menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        ) : null}
+        <Link
+          href={'/alerts' as Route}
           role="status"
           aria-live="polite"
-          className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300"
+          className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white"
         >
           <Bell className="h-4 w-4" />
           3 live alerts
-        </div>
+        </Link>
         <button
           type="button"
           onClick={handleLogout}

@@ -276,6 +276,7 @@ export function createHandlers({ store, config, startedAt }) {
   const aiGateway = createAiGateway({
     store,
     config,
+    embeddingsService,
     recommendationAgentService,
     insightAgentService,
     researchAgentService,

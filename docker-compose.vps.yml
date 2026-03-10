@@ -60,9 +60,21 @@ services:
     extends:
       file: docker-compose.yml
       service: control-plane-api
+    depends_on:
+      planner-slm:
+        condition: service_healthy
     env_file:
       - path: /srv/apps/control-plane-api/.env.production
         required: false
+    environment:
+      REASONING_PROVIDER: ollama
+      REASONING_API_URL: http://planner-slm:11434
+      REASONING_MODEL: mistral:7b-instruct
+      REASONING_TIMEOUT_MS: 8000
+      EMBEDDING_PROVIDER: ollama
+      EMBEDDING_API_URL: http://planner-slm:11434
+      EMBEDDING_MODEL: bge-small-en-v1.5
+      EMBEDDING_TIMEOUT_MS: 6000
     command:
       - sh
       - -c
@@ -115,10 +127,32 @@ services:
     ports: []
 
   planner-slm:
-    image: ghcr.io/example/planner-slm:latest
+    image: ollama/ollama:latest
     restart: unless-stopped
-    expose: ['7201']
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - |
+        ollama serve &
+        sleep 5
+        ollama pull mistral:7b-instruct
+        wait
+    expose: ['11434']
+    volumes:
+      - /srv/knowledge-layer/ollama:/root/.ollama
     networks: [private]
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://127.0.0.1:11434/api/tags > /dev/null || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   sql-brain:
     image: ghcr.io/example/sql-brain:latest

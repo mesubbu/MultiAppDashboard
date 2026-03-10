@@ -49,6 +49,7 @@ const assistantToolNameSchema = z.enum([
   'control.run.insight-agent',
   'control.run.recommendation-agent',
   'control.write.feedback',
+  'assistant.navigate',
 ]);
 
 export const statusSchema = z.enum(['healthy', 'degraded', 'critical']);

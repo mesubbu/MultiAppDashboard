@@ -27,7 +27,47 @@ type AssistantIntent =
   | 'observability'
   | 'events'
   | 'memory'
-  | 'models';
+  | 'models'
+  | 'navigate';
+
+const NAVIGATION_MAP: Record<string, { path: string; label: string }> = {
+  overview: { path: '/', label: 'Overview' },
+  home: { path: '/', label: 'Overview' },
+  dashboard: { path: '/', label: 'Overview' },
+  agents: { path: '/agents', label: 'Agents' },
+  analytics: { path: '/analytics', label: 'Analytics' },
+  apps: { path: '/apps', label: 'Apps' },
+  applications: { path: '/apps', label: 'Apps' },
+  audit: { path: '/audit', label: 'Audit Logs' },
+  events: { path: '/events', label: 'Events' },
+  'knowledge graph': { path: '/knowledge-graph', label: 'Knowledge Graph' },
+  knowledge: { path: '/knowledge-graph', label: 'Knowledge Graph' },
+  graph: { path: '/knowledge-graph', label: 'Knowledge Graph' },
+  memory: { path: '/memory', label: 'Memory' },
+  models: { path: '/models', label: 'Models' },
+  observability: { path: '/observability', label: 'Observability' },
+  health: { path: '/observability', label: 'Observability' },
+  recommendations: { path: '/recommendations', label: 'Recommendations' },
+  research: { path: '/research', label: 'Research' },
+  settings: { path: '/settings', label: 'Settings' },
+  signals: { path: '/signals', label: 'Market Signals' },
+  'market signals': { path: '/signals', label: 'Market Signals' },
+  tenants: { path: '/tenants', label: 'Tenants' },
+  tools: { path: '/tools', label: 'Tools' },
+  users: { path: '/users', label: 'Users' },
+  workflows: { path: '/workflows', label: 'Workflows' },
+  alerts: { path: '/alerts', label: 'Alerts' },
+  incidents: { path: '/incidents', label: 'Incidents' },
+};
+
+function resolveNavigationTarget(message: string): { path: string; label: string } | null {
+  const normalized = message.toLowerCase().replace(/^(open|go to|navigate to|take me to|show me)\s+/i, '').replace(/\s+page$/i, '').trim();
+  if (NAVIGATION_MAP[normalized]) return NAVIGATION_MAP[normalized];
+  for (const [keyword, target] of Object.entries(NAVIGATION_MAP)) {
+    if (normalized.includes(keyword)) return target;
+  }
+  return null;
+}
 
 type ToolExecution<T> = {
   toolCall: AssistantToolCall;
@@ -56,10 +96,12 @@ const toolPermissions: Record<AssistantToolName, Permission> = {
   'control.run.insight-agent': 'agents:operate',
   'control.run.recommendation-agent': 'agents:operate',
   'control.write.feedback': 'agents:operate',
+  'assistant.navigate': 'analytics:read',
 };
 
 function planIntent(message: string, history: AssistantChatMessage[], pathname?: string): AssistantIntent {
   const normalized = message.toLowerCase();
+  if (/^(open|go to|navigate to|take me to|show me)\b/.test(normalized)) return 'navigate';
   if (/supply|demand|gap|market imbalance/.test(normalized)) return 'supply_gaps';
   if (/throttled|queue|backlog|agent/.test(normalized)) return 'throttled_agents';
   if (/observability|service|health|cpu|memory|restart|error|hotspot/.test(normalized)) return 'observability';
@@ -262,6 +304,7 @@ function suggestionsForIntent(intent: AssistantIntent) {
   if (intent === 'events') return ['Which agents are throttled?', 'Show supply gaps', 'Summarize service health'];
   if (intent === 'memory') return ['What models are active?', 'Give me the platform overview', 'Show recent events'];
   if (intent === 'models') return ['Give me the platform overview', 'Show recent events', 'Which agents are throttled?'];
+  if (intent === 'navigate') return suggestionsForIntent(intent);
   return ['Show supply gaps', 'Which agents are throttled?', 'Summarize service health'];
 }
 
@@ -287,6 +330,26 @@ export async function getAssistantReply(input: {
   sessionUser: SessionUser;
 }): Promise<AssistantReply> {
   const intent = planIntent(input.message, input.history, input.pathname);
+
+  if (intent === 'navigate') {
+    const target = resolveNavigationTarget(input.message);
+    if (target) {
+      const toolCall: AssistantToolCall = {
+        tool: 'assistant.navigate',
+        permission: 'analytics:read',
+        status: 'completed',
+        summary: `Navigating to ${target.label} (${target.path})`,
+      };
+      return {
+        message: createAssistantMessage('assistant', `Opening **${target.label}** for you.`, [toolCall]),
+        suggestions: ['Show supply gaps', 'Which agents are throttled?', 'Summarize service health'],
+      };
+    }
+    return {
+      message: createAssistantMessage('assistant', 'I couldn\'t determine which page to navigate to. Try saying "open agents", "go to analytics", or "show me workflows".'),
+      suggestions: ['Open agents', 'Go to analytics', 'Show me workflows'],
+    };
+  }
 
   if (intent === 'throttled_agents') {
     const agents = await runTool(

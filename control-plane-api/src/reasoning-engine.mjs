@@ -207,16 +207,19 @@ function buildProvider(mode, config) {
   return { name: remoteEnabled ? 'ollama' : 'local-rules', model: config.reasoningModel || (mode === 'decide' ? 'Llama3.1-8B' : 'Mistral-7B-Instruct'), remoteEnabled };
 }
 
-async function maybeRewriteWithRemote(provider, structuredOutput, intent, mode, config) {
+async function maybeRewriteWithRemote(provider, structuredOutput, intent, mode, config, ragContext) {
   if (!provider.remoteEnabled) return null;
-  const response = await fetch(new URL('/api/generate', config.reasoningApiUrl).toString(), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: provider.model, stream: false, prompt: ['You are a concise operator-facing reasoning engine.', `Mode: ${mode}`, `Intent: ${intent}`, `Structured output: ${JSON.stringify(structuredOutput)}`, 'Return a short, actionable response in plain text.'].join('\n\n') }) });
+  const ragSection = ragContext?.length
+    ? ['', 'Platform knowledge (use as context for your response):', ...ragContext.map((ctx) => `[${ctx.title}] ${ctx.snippet}`), ''].join('\n')
+    : '';
+  const response = await fetch(new URL('/api/generate', config.reasoningApiUrl).toString(), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: provider.model, stream: false, prompt: ['You are a concise operator-facing reasoning engine.', `Mode: ${mode}`, `Intent: ${intent}`, ragSection, `Structured output: ${JSON.stringify(structuredOutput)}`, 'Return a short, actionable response in plain text.'].filter(Boolean).join('\n\n') }) });
   if (!response.ok) throw new Error(`Remote reasoning provider failed with status ${response.status}.`);
   const payload = await response.json().catch(() => null);
   if (!payload?.response || typeof payload.response !== 'string') throw new Error('Remote reasoning provider returned an invalid response.');
   return payload.response.trim();
 }
 
-export function createReasoningEngine({ store, config = {} }) {
+export function createReasoningEngine({ store, config = {}, embeddingsService }) {
   return {
     async execute(input, adminContext) {
       const intent = planIntent(input);
@@ -226,12 +229,18 @@ export function createReasoningEngine({ store, config = {} }) {
       const provider = buildProvider(mode, config);
       let content = local.content;
       let degraded = false;
+      let ragContext = [];
+      if (embeddingsService && provider.remoteEnabled) {
+        try {
+          ragContext = await embeddingsService.retrieveContext(input.message, { topK: 5, sourceType: 'knowledge_doc' });
+        } catch { /* RAG retrieval failure is non-fatal */ }
+      }
       try {
-        content = (await maybeRewriteWithRemote(provider, local.structuredOutput, intent, mode, config)) ?? content;
+        content = (await maybeRewriteWithRemote(provider, local.structuredOutput, intent, mode, config, ragContext)) ?? content;
       } catch {
         degraded = provider.remoteEnabled;
       }
-      return { mode, intent, provider, content, structuredOutput: local.structuredOutput, toolCalls: results.map((result) => result.toolCall), degraded };
+      return { mode, intent, provider, content, structuredOutput: local.structuredOutput, toolCalls: results.map((result) => result.toolCall), degraded, ragChunksUsed: ragContext.length };
     },
   };
 }

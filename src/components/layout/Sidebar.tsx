@@ -5,17 +5,22 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Activity,
+  AlertTriangle,
   Bot,
   Brain,
   Building2,
   DatabaseZap,
+  GitBranch,
   GitBranchPlus,
   LayoutGrid,
+  Lightbulb,
   Network,
   Radar,
+  Search,
   Settings,
   ShieldCheck,
   ToolCase,
+  TrendingUp,
   Users,
 } from 'lucide-react';
 
@@ -37,11 +42,38 @@ const iconMap = {
   memory: DatabaseZap,
   'knowledge-graph': Network,
   events: Activity,
+  alerts: AlertTriangle,
+  workflows: GitBranch,
+  research: Search,
+  signals: TrendingUp,
+  recommendations: Lightbulb,
   analytics: Radar,
   observability: GitBranchPlus,
   audit: ShieldCheck,
   settings: Settings,
 } as const;
+
+const sectionMap: Record<string, string> = {
+  overview: 'Dashboard',
+  events: 'Dashboard',
+  alerts: 'Dashboard',
+  analytics: 'Dashboard',
+  observability: 'Dashboard',
+  research: 'Content Interaction',
+  signals: 'Content Interaction',
+  recommendations: 'Content Interaction',
+  memory: 'Content Interaction',
+  'knowledge-graph': 'Content Interaction',
+  tenants: 'Administration',
+  apps: 'Administration',
+  users: 'Administration',
+  agents: 'Administration',
+  workflows: 'Administration',
+  tools: 'Administration',
+  models: 'Administration',
+  audit: 'Administration',
+  settings: 'Settings',
+};
 
 export function Sidebar({
   sessionUser,
@@ -71,27 +103,35 @@ export function Sidebar({
         tenantOptions={tenantOptions}
         appOptions={appOptions}
       />
-      <nav aria-label="Primary dashboard navigation" className="mt-6 space-y-2">
-        {visibleModules.map((module) => {
+      <nav aria-label="Primary dashboard navigation" className="mt-6 space-y-1">
+        {visibleModules.map((module, index) => {
           const Icon = iconMap[module.slug as keyof typeof iconMap] ?? LayoutGrid;
           const href = (module.slug === 'overview' ? '/' : `/${module.slug}`) as Route;
           const isCurrentPage = href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
+          const section = sectionMap[module.slug];
+          const prevSection = index > 0 ? sectionMap[visibleModules[index - 1].slug] : null;
+          const showHeader = section && section !== prevSection;
           return (
-            <Link
-              key={module.slug}
-              href={href}
-              aria-current={isCurrentPage ? 'page' : undefined}
-              className={cn(
-                'flex items-start gap-3 rounded-xl px-3 py-3 text-slate-300 transition hover:bg-white/5 hover:text-white',
-                isCurrentPage && 'bg-cyan-400/10 text-white ring-1 ring-cyan-400/30',
-              )}
-            >
-              <Icon className="mt-0.5 h-4 w-4 text-cyan-300" aria-hidden="true" />
-              <span>
-                <span className="block text-sm font-medium">{module.title}</span>
-                <span className="mt-1 block text-xs text-slate-500">{module.description}</span>
-              </span>
-            </Link>
+            <div key={module.slug}>
+              {showHeader ? (
+                <p className={cn('px-3 text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-600', index > 0 && 'mt-4 pt-3 border-t border-white/5')}>
+                  {section}
+                </p>
+              ) : null}
+              <Link
+                href={href}
+                aria-current={isCurrentPage ? 'page' : undefined}
+                className={cn(
+                  'flex items-start gap-3 rounded-xl px-3 py-2.5 text-slate-300 transition hover:bg-white/5 hover:text-white',
+                  isCurrentPage && 'bg-cyan-400/10 text-white ring-1 ring-cyan-400/30',
+                )}
+              >
+                <Icon className="mt-0.5 h-4 w-4 text-cyan-300" aria-hidden="true" />
+                <span>
+                  <span className="block text-sm font-medium">{module.title}</span>
+                </span>
+              </Link>
+            </div>
           );
         })}
       </nav>

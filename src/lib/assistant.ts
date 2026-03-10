@@ -1,6 +1,6 @@
 import type { AssistantChatMessage, AssistantToolName, SessionUser } from '@/types/platform';
 
-export type AssistantGatewayRoute = 'analyze' | 'research' | 'recommend' | 'command';
+export type AssistantGatewayRoute = 'analyze' | 'research' | 'recommend' | 'command' | 'navigate';
 
 export const assistantStarterPrompts = [
   'Show supply gaps',
@@ -66,6 +66,10 @@ export function planAssistantGatewayRoute(
 ): AssistantGatewayRoute {
   const normalized = message.toLowerCase();
 
+  if (/^(open|go to|navigate to|take me to|show me)\b/.test(normalized)) {
+    return 'navigate';
+  }
+
   if (/(run|execute|trigger).*(agent)|record.*(outcome|feedback)/.test(normalized)) {
     return 'command';
   }
@@ -129,5 +133,7 @@ export function getAssistantToolLabel(tool: AssistantToolName) {
       return 'Run Recommendation Agent';
     case 'control.write.feedback':
       return 'Record Feedback';
+    case 'assistant.navigate':
+      return 'Navigate';
   }
 }

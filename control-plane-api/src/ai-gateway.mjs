@@ -109,8 +109,8 @@ export function resetAiGatewayStateForTests() {
   gatewayState.clear();
 }
 
-export function createAiGateway({ store, config = {}, recommendationAgentService, insightAgentService, researchAgentService, feedbackLoopService }) {
-  const reasoningEngine = createReasoningEngine({ store, config });
+export function createAiGateway({ store, config = {}, embeddingsService, recommendationAgentService, insightAgentService, researchAgentService, feedbackLoopService }) {
+  const reasoningEngine = createReasoningEngine({ store, config, embeddingsService });
   const controlPlaneAiService = createControlPlaneAiService({ store, reasoningEngine, recommendationAgentService, insightAgentService, researchAgentService, feedbackLoopService });
   return {
     async analyze(input, adminContext) {

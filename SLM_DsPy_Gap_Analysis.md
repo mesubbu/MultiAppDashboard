@@ -1,5 +1,8 @@
 # SLM + DSPy Gap Analysis — Current Build vs. Planned Architecture
 
+> [!WARNING]
+> **Superseded on 2026-03-10.** This document's assessments are outdated. The updated gap analysis with implementation fix list is at [AG_SLM_DsPy_Fixes.md](file:///home/subbu/Downloads/Projects/0MultiAppHosting/AG_SLM_DsPy_Fixes.md).
+
 > **Date:** 2026-03-09  
 > **Source plan:** [SLM+DsPy.md](file:///home/subbu/Downloads/Projects/0MultiAppHosting/SLM+DsPy.md)  
 > **Compared against:** current codebase at `/home/subbu/Downloads/Projects/0MultiAppHosting`

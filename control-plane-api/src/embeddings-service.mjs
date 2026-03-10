@@ -137,6 +137,31 @@ function buildDocumentsAndChunks(input, provider) {
 }
 
 export function createEmbeddingsService({ store, config = {} }) {
+  function cosineSimilarity(vectorA, vectorB) {
+    let dot = 0;
+    let magA = 0;
+    let magB = 0;
+    for (let i = 0; i < vectorA.length; i += 1) {
+      dot += vectorA[i] * vectorB[i];
+      magA += vectorA[i] * vectorA[i];
+      magB += vectorB[i] * vectorB[i];
+    }
+    const denominator = Math.sqrt(magA) * Math.sqrt(magB);
+    return denominator === 0 ? 0 : dot / denominator;
+  }
+
+  async function generateQueryVector(text) {
+    const provider = buildProvider(config);
+    let vector;
+    try {
+      const remoteResult = await maybeEmbedWithRemote(provider, [text], config);
+      vector = remoteResult ? remoteResult[0] : buildDeterministicVector(text, provider.dimensions);
+    } catch {
+      vector = buildDeterministicVector(text, provider.dimensions);
+    }
+    return { vector, provider };
+  }
+
   return {
     async embed(input, adminContext) {
       const provider = buildProvider(config, input.model);
@@ -186,6 +211,62 @@ export function createEmbeddingsService({ store, config = {} }) {
         },
         degraded,
       };
+    },
+
+    async retrieveContext(query, { topK = 5, sourceType } = {}) {
+      const { vector: queryVector } = await generateQueryVector(query);
+      const allEmbeddings = await store.listEmbeddings({ sourceType });
+
+      const scored = allEmbeddings
+        .filter((emb) => Array.isArray(emb.embeddingVector) && emb.embeddingVector.length > 0)
+        .map((emb) => ({
+          ...emb,
+          score: cosineSimilarity(queryVector, emb.embeddingVector),
+        }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, topK);
+
+      return scored.map((item) => ({
+        id: item.id,
+        documentId: item.documentId,
+        sourceType: item.metadata?.sourceType ?? 'unknown',
+        title: item.metadata?.title ?? item.documentId,
+        snippet: item.chunkText?.slice(0, 400) ?? '',
+        score: Number(item.score.toFixed(4)),
+        metadata: item.metadata ?? {},
+        createdAt: item.createdAt ?? new Date().toISOString(),
+      }));
+    },
+
+    async embedKnowledgeDocs(filePaths, adminContext) {
+      const { readFile } = await import('node:fs/promises');
+      const results = [];
+      const provider = buildProvider(config);
+
+      for (const filePath of filePaths) {
+        try {
+          const text = await readFile(filePath, 'utf-8');
+          const checksum = computeChecksum(text);
+          const existingDocs = await store.listDocuments({ sourceType: 'knowledge_doc', sourceUri: filePath });
+          const alreadyEmbedded = existingDocs.some((doc) => doc.checksum === checksum);
+          if (alreadyEmbedded) {
+            results.push({ filePath, status: 'skipped', reason: 'checksum unchanged' });
+            continue;
+          }
+          const fileName = filePath.split('/').pop() ?? filePath;
+          const embedResult = await this.embed({
+            items: [{ text, sourceType: 'knowledge_doc', sourceUri: filePath, title: fileName }],
+            chunkSize: 800,
+            overlap: 100,
+            persist: true,
+          }, adminContext);
+          results.push({ filePath, status: 'embedded', stats: embedResult.stats, provider: provider.name });
+        } catch (error) {
+          results.push({ filePath, status: 'failed', error: error.message });
+        }
+      }
+
+      return { results, totalFiles: filePaths.length, embedded: results.filter((r) => r.status === 'embedded').length };
     },
   };
 }

@@ -83,6 +83,14 @@ export function AssistantSidebar({ sessionUser }: { sessionUser: SessionUser }) 
       const payload = assistantChatResponseSchema.parse(await response.json());
       setMessages((current) => pruneAssistantMessages([...current, payload.message]));
       setSuggestions(payload.suggestions.length ? payload.suggestions : [...assistantStarterPrompts]);
+
+      const navCall = payload.message.toolCalls.find((tc) => tc.tool === 'assistant.navigate' && tc.status === 'completed');
+      if (navCall) {
+        const pathMatch = navCall.summary.match(/\(([^)]+)\)/);
+        if (pathMatch?.[1]) {
+          setTimeout(() => { window.location.href = pathMatch[1]; }, 500);
+        }
+      }
     } catch (error) {
       pushErrorToast('Assistant unavailable', error instanceof Error ? error.message : 'Assistant request failed.');
       setMessages((current) => current.filter((message) => message.id !== userMessage.id));
